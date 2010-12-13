@@ -2,7 +2,6 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
 #include "huffman.h"
-#include <algorithm> // for std::swap
 
 struct CHuffmanConstructNode
 {
@@ -24,20 +23,26 @@ void CHuffman::Setbits_r(CNode *pNode, int Bits, unsigned Depth)
 	}
 }
 
-static void QuickSort(CHuffmanConstructNode** ppList,int left,int right)
+// TODO: this should be something faster, but it's enough for now
+static void BubbleSort(CHuffmanConstructNode **ppList, int Size)
 {
-	if(left<right)
+	int Changed = 1;
+	CHuffmanConstructNode *pTemp;
+	
+	while(Changed)
 	{
-		int m = left;
-		for(int i = left + 1 ; i <= right ; i++)
-			if(ppList[i]->m_Frequency < ppList[left]->m_Frequency)
-				std::swap(ppList[++m], ppList[i]);
-		std::swap(ppList[left], ppList[m]);
+		Changed = 0;
+		for(int i = 0; i < Size-1; i++)
 		{
-			QuickSort(ppList, left, m-1);
-			
-			QuickSort(ppList, m+1, right);
+			if(ppList[i]->m_Frequency < ppList[i+1]->m_Frequency)
+			{
+				pTemp = ppList[i];
+				ppList[i] = ppList[i+1];
+				ppList[i+1] = pTemp;
+				Changed = 1;
+			}
 		}
+		Size--;
 	}
 }
 
@@ -69,7 +74,8 @@ void CHuffman::ConstructTree(const unsigned *pFrequencies)
 	// construct the table
 	while(NumNodesLeft > 1)
 	{
-		QuickSort(apNodesLeft, 0, NumNodesLeft-1);
+		// we can't rely on stdlib's qsort for this, it can generate different results on different implementations
+		BubbleSort(apNodesLeft, NumNodesLeft);
 		
 		m_aNodes[m_NumNodes].m_NumBits = 0;
 		m_aNodes[m_NumNodes].m_aLeafs[0] = apNodesLeft[NumNodesLeft-1]->m_NodeId;
